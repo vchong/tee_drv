@@ -53,6 +53,8 @@ int optee_from_msg_param(struct tee_param *params, size_t num_params,
 	struct tee_shm *shm;
 	phys_addr_t pa;
 
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
+
 	for (n = 0; n < num_params; n++) {
 		struct tee_param *p = params + n;
 		const struct optee_msg_param *mp = msg_params + n;
@@ -122,6 +124,8 @@ int optee_to_msg_param(struct optee_msg_param *msg_params, size_t num_params,
 	size_t n;
 	phys_addr_t pa;
 
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
+
 	for (n = 0; n < num_params; n++) {
 		const struct tee_param *p = params + n;
 		struct optee_msg_param *mp = msg_params + n;
@@ -185,8 +189,10 @@ static int optee_open(struct tee_context *ctx)
 	struct optee *optee = tee_get_drvdata(teedev);
 
 	ctxdata = kzalloc(sizeof(*ctxdata), GFP_KERNEL);
-	if (!ctxdata)
+	if (!ctxdata) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		return -ENOMEM;
+	}
 
 	if (teedev == optee->supp_teedev) {
 		bool busy = true;
@@ -397,6 +403,11 @@ optee_config_shm_memremap(optee_invoke_fn *invoke_fn, void **memremaped_shm)
 	dmabuf_info.paddr = paddr + OPTEE_SHM_NUM_PRIV_PAGES * PAGE_SIZE;
 	dmabuf_info.size = size - OPTEE_SHM_NUM_PRIV_PAGES * PAGE_SIZE;
 
+	pr_notice("########");
+	pr_notice("size = %zu, priv_info.size = %zu\n", size, priv_info.size);
+	pr_notice("dmabuf_info.size = %zu\n", dmabuf_info.size);
+	pr_notice("########");
+
 	pool = tee_shm_pool_alloc_res_mem(&priv_info, &dmabuf_info);
 	if (IS_ERR(pool)) {
 		memunmap(va);
@@ -443,6 +454,7 @@ static int optee_outercache_mutex(optee_invoke_fn *invoke_fn)
 	vaddr = memremap(paddr, sizeof(u32), MEMREMAP_WB);
 	if (vaddr == NULL) {
 		pr_warn("TZ l2cc mutex: ioremap failed\n");
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -564,6 +576,7 @@ static struct optee *optee_probe(struct device_node *np)
 
 	optee = kzalloc(sizeof(*optee), GFP_KERNEL);
 	if (!optee) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		rc = -ENOMEM;
 		goto err;
 	}

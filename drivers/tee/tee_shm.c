@@ -128,6 +128,8 @@ struct tee_shm *tee_shm_alloc(struct tee_context *ctx, size_t size, u32 flags)
 	void *ret;
 	int rc;
 
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
+
 	if (!(flags & TEE_SHM_MAPPED)) {
 		dev_err(teedev->dev.parent,
 			"only mapped allocations supported\n");
@@ -150,6 +152,7 @@ struct tee_shm *tee_shm_alloc(struct tee_context *ctx, size_t size, u32 flags)
 
 	shm = kzalloc(sizeof(*shm), GFP_KERNEL);
 	if (!shm) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		ret = ERR_PTR(-ENOMEM);
 		goto err_dev_put;
 	}
@@ -220,6 +223,7 @@ struct tee_shm *tee_shm_register_fd(struct tee_context *ctx, int fd)
 
 	ref = kzalloc(sizeof(*ref), GFP_KERNEL);
 	if (!ref) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		rc = ERR_PTR(-ENOMEM);
 		goto err;
 	}

@@ -48,6 +48,7 @@ static struct tee_context *teedev_open(struct tee_device *teedev)
 
 	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
 	if (!ctx) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		rc = -ENOMEM;
 		goto err;
 	}
@@ -313,8 +314,10 @@ static int tee_ioctl_open_session(struct tee_context *ctx,
 	if (arg.num_params) {
 		params = kcalloc(arg.num_params, sizeof(struct tee_param),
 				 GFP_KERNEL);
-		if (!params)
+		if (!params) {
+			pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 			return -ENOMEM;
+		}
 		uparams = uarg->params;
 		rc = params_from_user(ctx, params, arg.num_params, uparams);
 		if (rc)
@@ -363,6 +366,9 @@ static int tee_ioctl_invoke(struct tee_context *ctx,
 	struct tee_ioctl_invoke_arg arg;
 	struct tee_ioctl_param __user *uparams = NULL;
 	struct tee_param *params = NULL;
+	static int count = 0;
+
+	pr_debug("%s %d %d \n", __FUNCTION__, __LINE__, count++);
 
 	if (!ctx->teedev->desc->ops->invoke_func)
 		return -EINVAL;
@@ -384,14 +390,18 @@ static int tee_ioctl_invoke(struct tee_context *ctx,
 	if (arg.num_params) {
 		params = kcalloc(arg.num_params, sizeof(struct tee_param),
 				 GFP_KERNEL);
-		if (!params)
+		if (!params) {
+			pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 			return -ENOMEM;
+		}
 		uparams = uarg->params;
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		rc = params_from_user(ctx, params, arg.num_params, uparams);
 		if (rc)
 			goto out;
 	}
 
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 	rc = ctx->teedev->desc->ops->invoke_func(ctx, &arg, params);
 	if (rc)
 		goto out;
@@ -401,6 +411,8 @@ static int tee_ioctl_invoke(struct tee_context *ctx,
 		rc = -EFAULT;
 		goto out;
 	}
+
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 	rc = params_to_user(uparams, arg.num_params, params);
 out:
 	if (params) {
@@ -516,8 +528,10 @@ static int tee_ioctl_supp_recv(struct tee_context *ctx,
 		return -EINVAL;
 
 	params = kcalloc(num_params, sizeof(struct tee_param), GFP_KERNEL);
-	if (!params)
+	if (!params) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		return -ENOMEM;
+	}
 
 	rc = params_from_user(ctx, params, num_params, uarg->params);
 	if (rc)
@@ -615,8 +629,10 @@ static int tee_ioctl_supp_send(struct tee_context *ctx,
 		return -EINVAL;
 
 	params = kcalloc(num_params, sizeof(struct tee_param), GFP_KERNEL);
-	if (!params)
+	if (!params) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		return -ENOMEM;
+	}
 
 	rc = params_from_supp(params, num_params, uarg->params);
 	if (rc)
@@ -706,6 +722,7 @@ struct tee_device *tee_device_alloc(const struct tee_desc *teedesc,
 
 	teedev = kzalloc(sizeof(*teedev), GFP_KERNEL);
 	if (!teedev) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		ret = ERR_PTR(-ENOMEM);
 		goto err;
 	}
@@ -720,6 +737,7 @@ struct tee_device *tee_device_alloc(const struct tee_desc *teedesc,
 	spin_unlock(&driver_lock);
 
 	if (teedev->id >= TEE_NUM_DEVICES) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		ret = ERR_PTR(-ENOMEM);
 		goto err;
 	}
@@ -956,6 +974,10 @@ struct tee_context *tee_client_open_context(struct tee_context *start,
 		put_dev = dev;
 
 		ctx = teedev_open(container_of(dev, struct tee_device, dev));
+
+		if (PTR_ERR(ctx) == -ENOMEM) {
+			pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
+		}
 	} while (IS_ERR(ctx) && PTR_ERR(ctx) != -ENOMEM);
 
 	put_device(put_dev);
@@ -1000,8 +1022,14 @@ int tee_client_invoke_func(struct tee_context *ctx,
 			struct tee_ioctl_invoke_arg *arg,
 			struct tee_param *param)
 {
-	if (!ctx->teedev->desc->ops->invoke_func)
+	static int count = 0;
+
+	pr_debug("%s %d %d \n", __FUNCTION__, __LINE__, count++);
+
+	if (!ctx->teedev->desc->ops->invoke_func) {
+		pr_debug("NO invoke_func AVAILABLE");
 		return -EINVAL;
+	}
 	return ctx->teedev->desc->ops->invoke_func(ctx, arg, param);
 }
 EXPORT_SYMBOL_GPL(tee_client_invoke_func);

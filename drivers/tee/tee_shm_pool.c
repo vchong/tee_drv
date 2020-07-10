@@ -26,8 +26,10 @@ static int pool_op_gen_alloc(struct tee_shm_pool_mgr *poolm,
 	size_t s = roundup(size, 1 << genpool->min_alloc_order);
 
 	va = gen_pool_alloc(genpool, s);
-	if (!va)
+	if (!va) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		return -ENOMEM;
+	}
 
 	memset((void *)va, 0, s);
 	shm->kaddr = (void *)va;
@@ -71,8 +73,10 @@ static int pool_res_mem_mgr_init(struct tee_shm_pool_mgr *mgr,
 		return -EINVAL;
 
 	genpool = gen_pool_create(min_alloc_order, -1);
-	if (!genpool)
+	if (!genpool) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		return -ENOMEM;
+	}
 
 	gen_pool_set_algo(genpool, gen_pool_best_fit, NULL);
 	rc = gen_pool_add_virt(genpool, info->vaddr, info->paddr, info->size,
@@ -109,6 +113,7 @@ tee_shm_pool_alloc_res_mem(struct tee_shm_pool_mem_info *priv_info,
 
 	pool = kzalloc(sizeof(*pool), GFP_KERNEL);
 	if (!pool) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		ret = -ENOMEM;
 		goto err;
 	}
@@ -132,8 +137,10 @@ tee_shm_pool_alloc_res_mem(struct tee_shm_pool_mem_info *priv_info,
 	pool->destroy = pool_res_mem_destroy;
 	return pool;
 err:
-	if (ret == -ENOMEM)
+	if (ret == -ENOMEM) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		pr_err("%s: can't allocate memory for res_mem shared memory pool\n", __func__);
+	}
 	if (pool && pool->private_mgr.private_data)
 		gen_pool_destroy(pool->private_mgr.private_data);
 	kfree(pool);

@@ -154,11 +154,16 @@ static void handle_rpc_supp_cmd(struct tee_context *ctx,
 {
 	struct tee_param *params;
 
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
+
 	arg->ret_origin = TEEC_ORIGIN_COMMS;
 
 	params = kmalloc_array(arg->num_params, sizeof(struct tee_param),
 			       GFP_KERNEL);
 	if (!params) {
+		pr_info("#####################################\n");
+		pr_info("handle_rpc_supp_cmd kmalloc_array oom\n");
+		pr_info("#####################################\n");
 		arg->ret = TEEC_ERROR_OUT_OF_MEMORY;
 		return;
 	}
@@ -189,8 +194,10 @@ static struct tee_shm *cmd_alloc_suppl(struct tee_context *ctx, size_t sz)
 	param.u.value.c = 0;
 
 	ret = optee_supp_thrd_req(ctx, OPTEE_MSG_RPC_CMD_SHM_ALLOC, 1, &param);
-	if (ret)
+	if (ret) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		return ERR_PTR(-ENOMEM);
+	}
 
 	mutex_lock(&optee->supp.mutex);
 	/* Increases count as secure world doesn't have a reference */
@@ -206,6 +213,8 @@ static void handle_rpc_func_cmd_shm_alloc(struct tee_context *ctx,
 	struct tee_shm *shm;
 	size_t sz;
 	size_t n;
+
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 
 	arg->ret_origin = TEEC_ORIGIN_COMMS;
 
@@ -236,6 +245,9 @@ static void handle_rpc_func_cmd_shm_alloc(struct tee_context *ctx,
 	}
 
 	if (IS_ERR(shm)) {
+		pr_info("#############################################\n");
+		pr_info("handle_rpc_func_cmd_shm_alloc IS_ERR(shm) oom\n");
+		pr_info("#############################################\n");
 		arg->ret = TEEC_ERROR_OUT_OF_MEMORY;
 		return;
 	}
@@ -312,6 +324,8 @@ static void handle_rpc_func_cmd(struct tee_context *ctx, struct optee *optee,
 {
 	struct optee_msg_arg *arg;
 
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
+
 	arg = tee_shm_get_va(shm, 0);
 	if (IS_ERR(arg)) {
 		pr_err("%s: tee_shm_get_va %p failed\n", __func__, shm);
@@ -320,21 +334,27 @@ static void handle_rpc_func_cmd(struct tee_context *ctx, struct optee *optee,
 
 	switch (arg->cmd) {
 	case OPTEE_MSG_RPC_CMD_GET_TIME:
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		handle_rpc_func_cmd_get_time(arg);
 		break;
 	case OPTEE_MSG_RPC_CMD_WAIT_QUEUE:
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		handle_rpc_func_cmd_wq(optee, arg);
 		break;
 	case OPTEE_MSG_RPC_CMD_SUSPEND:
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		handle_rpc_func_cmd_wait(arg);
 		break;
 	case OPTEE_MSG_RPC_CMD_SHM_ALLOC:
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		handle_rpc_func_cmd_shm_alloc(ctx, arg);
 		break;
 	case OPTEE_MSG_RPC_CMD_SHM_FREE:
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		handle_rpc_func_cmd_shm_free(ctx, arg);
 		break;
 	default:
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		handle_rpc_supp_cmd(ctx, arg);
 	}
 }
@@ -353,8 +373,11 @@ void optee_handle_rpc(struct tee_context *ctx, struct optee_rpc_param *param)
 	struct tee_shm *shm;
 	phys_addr_t pa;
 
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
+
 	switch (OPTEE_SMC_RETURN_GET_RPC_FUNC(param->a0)) {
 	case OPTEE_SMC_RPC_FUNC_ALLOC:
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		shm = tee_shm_alloc(ctx, param->a1, TEE_SHM_MAPPED);
 		if (!IS_ERR(shm) && !tee_shm_get_pa(shm, 0, &pa)) {
 			reg_pair_from_64(&param->a1, &param->a2, pa);
@@ -368,10 +391,12 @@ void optee_handle_rpc(struct tee_context *ctx, struct optee_rpc_param *param)
 		}
 		break;
 	case OPTEE_SMC_RPC_FUNC_FREE:
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		shm = reg_pair_to_ptr(param->a1, param->a2);
 		tee_shm_free(shm);
 		break;
 	case OPTEE_SMC_RPC_FUNC_FOREIGN_INTR:
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		/*
 		 * A foreign interrupt was raised while secure world was
 		 * executing, since they are handled in Linux a dummy RPC is
@@ -380,10 +405,12 @@ void optee_handle_rpc(struct tee_context *ctx, struct optee_rpc_param *param)
 		 */
 		break;
 	case OPTEE_SMC_RPC_FUNC_CMD:
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		shm = reg_pair_to_ptr(param->a1, param->a2);
 		handle_rpc_func_cmd(ctx, optee, shm);
 		break;
 	default:
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		pr_warn("Unknown RPC func 0x%x\n",
 			(u32)OPTEE_SMC_RETURN_GET_RPC_FUNC(param->a0));
 		break;

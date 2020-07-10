@@ -92,8 +92,14 @@ u32 optee_supp_thrd_req(struct tee_context *ctx, u32 func, size_t num_params,
 	bool interruptable;
 	u32 ret;
 
-	if (!req)
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
+
+	if (!req) {
+		pr_info("#####################################\n");
+		pr_info("optee_supp_thrd_req oom\n");
+		pr_info("#####################################\n");
 		return TEEC_ERROR_OUT_OF_MEMORY;
+	}
 
 	init_completion(&req->c);
 	req->func = func;
@@ -172,8 +178,10 @@ static struct optee_supp_req  *supp_pop_entry(struct optee_supp *supp,
 	}
 
 	*id = idr_alloc(&supp->idr, req, 1, 0, GFP_KERNEL);
-	if (*id < 0)
+	if (*id < 0) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		return ERR_PTR(-ENOMEM);
+	}
 
 	list_del(&req->link);
 	req->busy = true;

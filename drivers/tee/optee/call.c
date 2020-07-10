@@ -142,6 +142,8 @@ u32 optee_do_call_with_arg(struct tee_context *ctx, phys_addr_t parg)
 	struct optee_rpc_param param = { };
 	u32 ret;
 
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
+
 	param.a0 = OPTEE_SMC_CALL_WITH_ARG;
 	reg_pair_from_64(&param.a1, &param.a2, parg);
 
@@ -165,18 +167,21 @@ u32 optee_do_call_with_arg(struct tee_context *ctx, phys_addr_t parg)
 				 &res);
 
 		if (res.a0 == OPTEE_SMC_RETURN_ETHREAD_LIMIT) {
+			pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 			/*
 			 * Out of threads in secure world, wait for a thread
 			 * become available.
 			 */
 			optee_cq_wait_for_completion(&optee->call_queue, &w);
 		} else if (OPTEE_SMC_RETURN_IS_RPC(res.a0)) {
+			pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 			param.a0 = res.a0;
 			param.a1 = res.a1;
 			param.a2 = res.a2;
 			param.a3 = res.a3;
 			optee_handle_rpc(ctx, &param);
 		} else {
+			pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 			ret = res.a0;
 			break;
 		}
@@ -271,6 +276,7 @@ int optee_open_session(struct tee_context *ctx,
 
 	sess = kzalloc(sizeof(*sess), GFP_KERNEL);
 	if (!sess) {
+		pr_debug("%s %d enomem \n", __FUNCTION__, __LINE__);
 		rc = -ENOMEM;
 		goto out;
 	}
@@ -345,6 +351,9 @@ int optee_invoke_func(struct tee_context *ctx, struct tee_ioctl_invoke_arg *arg,
 	phys_addr_t msg_parg;
 	struct optee_session *sess;
 	int rc;
+	static int count = 0;
+
+	pr_debug("%s %d %d \n", __FUNCTION__, __LINE__, count++);
 
 	/* Check that the session is valid */
 	mutex_lock(&ctxdata->mutex);
@@ -365,12 +374,16 @@ int optee_invoke_func(struct tee_context *ctx, struct tee_ioctl_invoke_arg *arg,
 	if (rc)
 		goto out;
 
+	pr_debug("%s %d \n", __FUNCTION__, __LINE__);
+
 	if (optee_do_call_with_arg(ctx, msg_parg)) {
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		msg_arg->ret = TEEC_ERROR_COMMUNICATION;
 		msg_arg->ret_origin = TEEC_ORIGIN_COMMS;
 	}
 
 	if (optee_from_msg_param(param, arg->num_params, msg_arg->params)) {
+		pr_debug("%s %d \n", __FUNCTION__, __LINE__);
 		msg_arg->ret = TEEC_ERROR_COMMUNICATION;
 		msg_arg->ret_origin = TEEC_ORIGIN_COMMS;
 	}
