@@ -35,8 +35,7 @@
 
 #define DRIVER_NAME "optee"
 
-#define OPTEE_SHM_NUM_PRIV_PAGES	1
-
+#define OPTEE_SHM_NUM_PRIV_PAGES	64
 /**
  * optee_from_msg_param() - convert from OPTEE_MSG parameters to
  *			    struct tee_param
